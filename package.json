@@ -1,0 +1,24 @@
+{
+  "name": "asistente-academico-duoc",
+  "version": "2.0.0",
+  "description": "Agente inteligente (LangGraph.js) con planificación, memoria, herramientas y recuperación semántica híbrida para consultas académicas de Duoc UC",
+  "type": "module",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "traza": "node src/app.js --traza",
+    "test": "node --test \"tests/*.test.js\"",
+    "test:ci": "node --test \"tests/*.test.js\"",
+    "calibrar": "node scripts/calibrar.js"
+  },
+  "dependencies": {
+    "@langchain/core": "^0.3.0",
+    "@langchain/langgraph": "^0.2.0",
+    "@langchain/openai": "^0.5.0",
+    "dotenv": "^16.4.7",
+    "zod": "^3.23.8"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
