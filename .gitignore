@@ -143,5 +143,5 @@ vite.config.ts.timestamp-*
 .vite/
 
 # Memoria de largo plazo y archivos generados por el agente
-data/
-salidas/
+/data/
+/salidas/
