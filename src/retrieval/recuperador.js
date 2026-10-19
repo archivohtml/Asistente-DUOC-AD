@@ -21,7 +21,7 @@ export function crearRecuperador({
   embeddings = null,
   modelo = process.env.EMBEDDING_MODEL || MODELO_EMBEDDINGS_DEFECTO,
   cachePath = process.env.EMBEDDINGS_CACHE || path.join("data", "embeddings", "indice.json"),
-  minSimilitud = Number(process.env.SEMANTIC_MIN_SCORE ?? 0.3),
+    minSimilitud = Number(process.env.SEMANTIC_MIN_SCORE ?? 0.33),
   margen = Number(process.env.SEMANTIC_MARGIN ?? 0.12),
   maxResultados = 8,
   registros = allRecords,
