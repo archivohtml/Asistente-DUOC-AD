@@ -187,14 +187,30 @@ export function crearGrafo({
 
 /**
  * Envía un mensaje al agente. `onNodo(nombre, actualizacion)` permite mostrar la traza de orquestación.
+ * Si se entrega un `registrador`, el turno queda medido (latencia, tokens, errores) en logs/ejecuciones.jsonl.
  */
-export async function conversar(grafo, { usuarioId = "usuario-local", texto, onNodo }) {
-  const config = { configurable: { thread_id: usuarioId, usuario_id: usuarioId }, recursionLimit: 40 };
-  const flujo = await grafo.stream({ messages: [new HumanMessage(texto)] }, { ...config, streamMode: "updates" });
-  for await (const chunk of flujo) {
-    for (const [nodo, update] of Object.entries(chunk)) onNodo?.(nodo, update ?? {});
+export async function conversar(grafo, { usuarioId = "usuario-local", texto, onNodo, registrador, meta }) {
+  const obs = registrador?.iniciarTurno({ usuarioId, texto, meta });
+  const config = {
+    configurable: { thread_id: usuarioId, usuario_id: usuarioId },
+    recursionLimit: 40,
+    ...(obs ? { callbacks: [obs.callback] } : {})
+  };
+  try {
+    const flujo = await grafo.stream({ messages: [new HumanMessage(texto)] }, { ...config, streamMode: "updates" });
+    for await (const chunk of flujo) {
+      for (const [nodo, update] of Object.entries(chunk)) {
+        obs?.nodo(nodo, update ?? {});
+        onNodo?.(nodo, update ?? {});
+      }
+    }
+    const estado = await grafo.getState(config);
+    const ultimo = [...estado.values.messages].reverse().find((m) => (m._getType?.() ?? m.type) === "ai" && textoDe(m));
+    const respuesta = textoDe(ultimo) || "No pude generar una respuesta en este momento.";
+    obs?.fin(respuesta);
+    return respuesta;
+  } catch (e) {
+    obs?.error(e);
+    throw e;
   }
-  const estado = await grafo.getState(config);
-  const ultimo = [...estado.values.messages].reverse().find((m) => (m._getType?.() ?? m.type) === "ai" && textoDe(m));
-  return textoDe(ultimo) || "No pude generar una respuesta en este momento.";
 }
