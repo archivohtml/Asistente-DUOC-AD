@@ -145,3 +145,7 @@ vite.config.ts.timestamp-*
 # Memoria de largo plazo y archivos generados por el agente
 /data/
 /salidas/
+
+# Observabilidad: registros de ejecución y dashboard generado
+/logs/
+/dashboard/index.html

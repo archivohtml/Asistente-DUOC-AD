@@ -6,10 +6,12 @@ import { PerfilStore } from "./memory/perfilStore.js";
 import { crearHerramientas } from "./tools/index.js";
 import { crearRecuperadorPorDefecto } from "./retrieval/recuperador.js";
 import { resumenRecuperacion } from "./lib/traza.js";
+import { Registrador } from "./observabilidad/registrador.js";
 
 const traza = process.argv.includes("--traza") || process.env.TRAZA === "1";
 const usuarioId = process.env.USUARIO_ID || "usuario-local";
 const store = new PerfilStore();
+const registrador = process.env.LOGS === "off" ? undefined : new Registrador();
 
 const llm = crearLLM();
 const plannerLLM = process.env.PLANNER_MODEL ? crearLLM({ model: process.env.PLANNER_MODEL, temperature: 0, maxTokens: 400 }) : llm;
@@ -58,7 +60,7 @@ async function main() {
     if (entrada === "/olvidar") { store.olvidar(usuarioId); console.log("Perfil borrado.\n"); continue; }
 
     try {
-      const respuesta = await conversar(grafo, { usuarioId, texto: entrada, onNodo: traza ? mostrarTraza : undefined });
+      const respuesta = await conversar(grafo, { usuarioId, texto: entrada, onNodo: traza ? mostrarTraza : undefined, registrador });
       console.log(`bot: ${respuesta}\n`);
     } catch (error) {
       console.error("error:", error.message, "\n");
