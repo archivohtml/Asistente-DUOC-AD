@@ -1,8 +1,8 @@
 # Asistente Académico Duoc UC — Agente con LangGraph.js
 
-Agente inteligente que orienta a estudiantes de Duoc UC sobre el **Calendario Académico 2026** (matrícula, semana cero, inscripción y retiro de asignaturas, pruebas finales, feriados). Combina **planificación adaptativa, memoria de corto, largo plazo y episódica, herramientas de consulta y escritura, recuperación semántica híbrida y un verificador anti alucinación**, orquestados con **LangGraph.js**.
+Agente inteligente que orienta a estudiantes de Duoc UC sobre el **Calendario Académico 2026** (matrícula, semana cero, inscripción y retiro de asignaturas, pruebas finales, feriados). Combina **planificación adaptativa, memoria de corto, largo plazo y episódica, herramientas de consulta y escritura, recuperación semántica híbrida y un verificador anti alucinación**, orquestados con **LangGraph.js**. La evaluación parcial 3 agrega **observabilidad**: métricas, logs estructurados, batería de evaluación y un dashboard interactivo.
 
-Proyecto académico de la asignatura *Ingeniería de Soluciones con Inteligencia Artificial* (ISY0101), Duoc UC. Docente: Francisco Macaya. No es un canal oficial de la institución.
+Proyecto académico de la asignatura *Ingeniería de Soluciones con Inteligencia Artificial* (ISY1010), Duoc UC. Docente: Francisco Macaya. No es un canal oficial de la institución.
 
 ## 1. Problema que resuelve
 
@@ -49,9 +49,18 @@ src/
 ├── lib/                    # utilidades de fecha (FECHA_SIMULADA) y traza
 ├── agent/                  # grafo, estado, planificador, verificador, ventana, llm
 ├── tools/index.js          # 4 herramientas con esquema zod
-└── memory/perfilStore.js   # memoria de largo plazo
-tests/                      # núcleo, grafo con LLM simulado y recuperación semántica
-scripts/calibrar.js         # calibra el umbral de similitud con el modelo real
+├── memory/perfilStore.js   # memoria de largo plazo
+└── observabilidad/         # (parcial 3)
+    ├── registrador.js      # callback de LangChain: 1 línea JSON por turno en logs/
+    ├── anonimizar.js       # enmascara RUT, correos y teléfonos; seudonimiza al usuario
+    ├── metricas.js         # precisión, fechas inventadas, consistencia, percentiles
+    └── evaluacion.js       # ejecuta la batería de casos y califica cada respuesta
+evaluacion/casos.json       # 15 casos de prueba (parcial 3)
+tests/                      # núcleo, grafo con LLM simulado, recuperación y observabilidad
+scripts/
+├── calibrar.js             # calibra el umbral de similitud con el modelo real
+├── evaluar.js              # corre la batería contra el agente real e imprime el resumen
+└── dashboard.js            # genera dashboard/index.html a partir de los logs
 docs/                       # arquitectura, guion de demo y evidencias (capturas)
 ```
 
@@ -70,17 +79,70 @@ npm start                   # o: npm run traza
 |---|---|
 | `npm start` | Inicia el chat en la terminal |
 | `npm run traza` | Igual, pero muestra planificador, herramientas y verificador en vivo |
-| `npm test` / `npm run test:ci` | Ejecuta las 42 pruebas automáticas (no requieren API key ni red) |
+| `npm test` / `npm run test:ci` | Ejecuta las 47 pruebas automáticas (no requieren API key ni red) |
 | `npm run calibrar` | Calibra el umbral de similitud semántica (requiere API key) |
+| `npm run evaluar` | Ejecuta la batería de 15 casos contra el agente real y escribe `logs/` (requiere API key) |
+| `npm run dashboard` | Genera `dashboard/index.html` a partir de `logs/ejecuciones.jsonl` |
 
 Comandos dentro del chat: `/perfil`, `/olvidar`, `/salir`.
 
 **Umbral semántico.** La calibración (7 consultas positivas y 5 negativas) dio una similitud mínima de 0,360 en las positivas y máxima de 0,297 en las negativas, por lo que se recomienda `SEMANTIC_MIN_SCORE=0.33` en el `.env`.
 
+> **Windows / PowerShell:** si PowerShell bloquea los scripts de `npm`, usa `npm.cmd` (por ejemplo `npm.cmd test`, `npm.cmd run evaluar`).
+
 Si `npm install` reporta conflictos entre paquetes de LangChain, ejecuta:
 `npm install @langchain/core@latest @langchain/langgraph@latest @langchain/openai@latest zod`.
 
-## 7. Preguntas de demostración
+## 7. Observabilidad (evaluación parcial 3)
+
+El agente registra **una línea JSON por turno** en `logs/ejecuciones.jsonl` mediante un *callback* de LangChain (`src/observabilidad/registrador.js`). El registro no cambia las respuestas del agente.
+
+### 7.1 Métricas
+
+| Dimensión | Métrica | Cómo se mide |
+|---|---|---|
+| Precisión | % de respuestas correctas | `calificar()` compara las fechas de la respuesta con las esperadas por caso (`evaluacion/casos.json`) |
+| Precisión | Fechas inventadas | Fechas de la respuesta que no existen en el calendario real, no son "hoy" y no las dijo el estudiante |
+| Consistencia | % de repeticiones que coinciden | Misma pregunta repetida N veces (`--rep=N`); se compara el conjunto de fechas de cada respuesta |
+| Latencia | p50 y p95 del turno; latencia por nodo | Tiempo del turno completo y tiempo entre eventos del *stream* de LangGraph |
+| Recursos | Tokens y llamadas al LLM por turno | `usage_metadata` de cada llamada al modelo |
+| Errores | Tasa de errores, bloqueos del verificador, mensaje seguro, replanificaciones, aclaraciones | Contadores por turno en el log |
+
+### 7.2 Escenarios de evaluación
+
+`evaluacion/casos.json` define 15 casos que cubren calendario, lenguaje coloquial, ortografía, seguimiento (2 turnos), aclaración, derivación a humano, fuera de ámbito, inyección de instrucciones y privacidad (RUT y correo en la pregunta). Cada ejecución usa un usuario y un perfil nuevos para que no se contaminen entre sí.
+
+### 7.3 Cómo ejecutar
+
+```bash
+npm run evaluar                              # 15 casos × 3 repeticiones
+npm run evaluar -- --rep=5                   # más repeticiones = mejor medida de consistencia
+npm run evaluar -- --casos=cal_retiro_base,der_beca --rep=1   # solo algunos casos
+npm run dashboard                            # genera dashboard/index.html
+```
+
+Abre `dashboard/index.html` con doble clic (usa Chart.js desde CDN, requiere internet). En Windows: `start dashboard\index.html`.
+
+`evaluar` imprime un resumen (precisión, fechas inventadas, consistencia, latencia p50/p95, tokens, llamadas por turno, tasas) y guarda `logs/resumen.json`. **Antes de una corrida nueva borra la carpeta `logs/`**, o los resultados se mezclarán con los anteriores.
+
+> **Costo y límites:** la evaluación hace unas 2 llamadas al LLM por turno (15 casos × repeticiones). Requiere saldo en OpenRouter o un modelo con cuota suficiente; los modelos gratuitos pueden responder `429` (límite de tasa).
+
+### 7.4 Dashboard
+
+Interactivo y autocontenido: filtros por tipo de caso y por caso, KPIs, latencia por nodo y por turno, precisión por tipo, errores y decisiones adaptativas, tokens por turno y una tabla de turnos fallidos donde, al hacer clic, se ve la respuesta del agente.
+
+### 7.5 Formato del log
+
+Cada línea `turno` incluye: `turno_id`, `ts`, `usuario` (seudónimo), `modelo`, `intencion`, `modalidad`, `nodos[{nodo, ms}]`, `llm{llamadas, ms, tokens_in, tokens_out}`, `herramientas[]`, `recuperacion`, `replans`, `bloqueos_verificador`, `mensaje_seguro`, `aclaracion`, `errores[]`, `latencia_ms`, `pregunta` y `respuesta`. Durante `evaluar` se añade una línea `calificacion` por turno (`ok`, `motivo`, `fechas_inventadas`).
+
+### 7.6 Privacidad en los registros
+
+- Antes de escribir en disco se enmascaran **RUT, correos, teléfonos y números largos** (`anonimizar.js`).
+- El identificador del usuario se **seudonimiza** con hash SHA-256 y sal (`LOG_SALT`); no es reversible.
+- `LOG_TEXTO=off` omite el texto de preguntas y respuestas (solo quedan métricas). `LOGS=off` desactiva el registro.
+- `logs/` y `dashboard/index.html` están en `.gitignore`: no se suben al repositorio.
+
+## 8. Preguntas de demostración
 
 Estas consultas recorren cada capacidad del agente (ver `docs/GUION_DEMO.md`). Úsalas con `npm run traza`.
 
@@ -97,32 +159,37 @@ Estas consultas recorren cada capacidad del agente (ver `docs/GUION_DEMO.md`). �
 | 9 | Cerrar y reabrir la app, luego `/perfil` | **Persistencia** entre sesiones | El perfil y los últimos temas siguen ahí |
 | 10 | `quiero soltar un curso` | **Recuperación semántica** con lenguaje coloquial | Resultados de retiro de asignaturas, similitudes en la traza |
 
-## 8. Evidencias
+## 9. Evidencias
 
 La carpeta [`docs/evidencias/`](docs/evidencias/) contiene las capturas completas de:
 
 - **Calibración semántica** (`npm run calibrar`).
 - **Suite de pruebas** (`npm test`).
 - **Traza del agente** (`npm run traza`).
+- **Observabilidad (parcial 3):** resumen de `npm run evaluar`, capturas del dashboard y ejemplo de log anonimizado.
 
-## 9. Limitaciones conocidas
+## 10. Limitaciones conocidas
 
 - Los datos del calendario son estáticos (año 2026).
 - El planificador decide si pedir la modalidad con reglas de palabras clave; la recuperación sí es semántica.
 - La memoria de corto plazo vive en RAM y se pierde al cerrar la aplicación; el perfil y los temas se guardan en disco.
 - El verificador valida fechas, no procedimientos descritos en texto libre.
 - No hay conexión a WhatsApp ni a otros canales.
+- Las métricas dependen del modelo y del modo de recuperación usados en cada corrida (el log guarda el modelo); con embeddings no disponibles se usa solo búsqueda por palabras clave.
+- La batería tiene 15 casos y pocas repeticiones: sirve para detectar tendencias, no para estimaciones estadísticas finas.
 
-## 10. Seguridad
+## 11. Seguridad
 
 - Las claves viven solo en `.env`, ignorado por git. **Nunca subas `.env`**. Si una clave se expuso, revócala y genera otra.
 - `data/` (memoria, índice de embeddings) y `salidas/` (archivos generados) también están ignorados.
 - El perfil acepta solo campos de una lista blanca; la herramienta de agenda escribe solo en `SALIDAS_PATH`.
+- Los logs se anonimizan antes de escribirse (ver 7.6) y se mantienen solo en local.
+- El verificador de fechas y el caso `iny_fecha` de la batería comprueban la resistencia a instrucciones maliciosas.
 
-## 11. Declaración de uso de IA
+## 12. Declaración de uso de IA
 
 El código y la documentación se desarrollaron con apoyo de IA generativa, principalmente Claude (Anthropic, 2026). El equipo revisó, probó y validó los resultados, y asume la responsabilidad por el contenido final. Las conclusiones individuales del informe fueron escritas por cada integrante.
 
-## 12. Autores
+## 13. Autores
 
 Camilo Peña, Camilo Alarcón y Sebastián Maquera.
