@@ -25,7 +25,7 @@ const r = resumir(corrida);
 const pct = (x) => (x == null ? "n/d" : `${(x * 100).toFixed(1)}%`);
 const cal = corrida.filter((l) => l.evento === "calificacion");
 console.log(`Líneas del log completo: ${lineas.length} | descartadas (corridas anteriores): ${inicio} | usadas: ${corrida.length}
-Ejecuciones calificadas (caso × repetición): ${cal.length}   Turnos registrados (incluye reintentos): ${r.turnos}
+Ejecuciones calificadas (caso × repetición): ${cal.length}   Turnos registrados (los casos de varios turnos cuentan más de uno): ${r.turnos}
 Precisión:        ${pct(r.precision)}
 Fechas inventadas: ${r.fechas_inventadas}
 Consistencia:     ${pct(r.consistencia)}

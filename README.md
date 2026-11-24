@@ -29,7 +29,7 @@ START → cargar_memoria → planificador ─┬→ aclaracion ─────�
                               └──────── verificador ──→ guardar_memoria ◄──────┘ → END
 ```
 
-Detalle de nodos, tablas y diagrama Mermaid en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md). Guion de la demostración en [`docs/GUION_DEMO.md`](docs/GUION_DEMO.md). Capturas de las pruebas en [`docs/evidencias/`](docs/evidencias/).
+Detalle de nodos, tablas y diagrama Mermaid en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md). Bocetos de diseño de la observabilidad (flujo de datos y wireframe del dashboard) en [`docs/bocetos/`](docs/bocetos/BOCETOS.md). Guion de la demostración en [`docs/GUION_DEMO.md`](docs/GUION_DEMO.md). Capturas de las pruebas en [`docs/evidencias/`](docs/evidencias/).
 
 **Recuperación (RAG) híbrida.** Cada consulta se compara por similitud semántica (embeddings `openai/text-embedding-3-small` vía OpenRouter, índice vectorial con caché en disco) y por palabras clave. Los dos rankings se fusionan con *Reciprocal Rank Fusion* (k = 60). Se aplica filtro por modalidad y un umbral de similitud para no inventar resultados. Sin API key, o si falla la red, el sistema degrada a palabras clave.
 
@@ -62,7 +62,7 @@ scripts/
 ├── evaluar.js              # corre la batería contra el agente real e imprime el resumen
 ├── ultima_corrida.js       # aísla la última corrida del log (logs/corrida_final.jsonl) y la resume
 └── dashboard.js            # genera dashboard/index.html a partir de los logs
-docs/                       # arquitectura, guion de demo y evidencias (capturas)
+docs/                       # arquitectura, guion de demo, evidencias (capturas) y bocetos de diseño
 ```
 
 ## 6. Instalación y ejecución
@@ -165,7 +165,7 @@ Datos de la corrida usada como evidencia del informe (15 casos × 5 repeticiones
 |---|---|
 | Modelo | `google/gemma-4-26b-a4b-it:free` (vía OpenRouter) |
 | Recuperación | Solo palabras clave (los embeddings no estuvieron disponibles: HTTP 402 por falta de créditos) |
-| Ejecuciones calificadas / turnos registrados | 75 / 80 (los turnos extra son reintentos por errores del proveedor) |
+| Ejecuciones calificadas / turnos registrados | 75 / 80 (el caso `seg_examenes` tiene 2 turnos por ejecución: 75 + 5 = 80) |
 | Precisión / consistencia | 76,0 % / 92,0 % |
 | Fechas inventadas | 0 |
 | Latencia p50 / p95 | 16 862 ms / 119 600 ms |
