@@ -94,10 +94,10 @@ function render(){
 
   const acum = {}; D.forEach(d => d.nodos.forEach(x => (acum[x.nodo] ||= []).push(x.ms)));
   const nodos = Object.entries(acum).map(([k,v]) => [k, prom(v)]).sort((a,b)=>b[1]-a[1]);
-  dibujar("cNodos", {type:"bar", data:{labels:nodos.map(x=>x[0]), datasets:[{label:"ms", data:nodos.map(x=>+x[1].toFixed(1)), backgroundColor:color()}]}, options:{indexAxis:"y", plugins:{legend:{display:false}}}});
+  dibujar("cNodos", {type:"bar", data:{labels:nodos.map(x=>x[0]), datasets:[{label:"ms", data:nodos.map(x=>+x[1].toFixed(1)), backgroundColor:color()}]}, options:{indexAxis:"y", plugins:{legend:{display:false}}, scales:{y:{ticks:{autoSkip:false}}}}});
   dibujar("cLat", {type:"bar", data:{labels:D.map((_,i)=>i+1), datasets:[{label:"ms", data:lat, backgroundColor:D.map(d=>d.errores.length||d.ok===false?"#c62828":color())}]}, options:{plugins:{legend:{display:false}}, scales:{x:{title:{display:true,text:"turno"}}}}});
   const tipos = {}; cals.forEach(d => (tipos[tipoDe(d)] ||= []).push(d.ok?1:0));
-  dibujar("cTipo", {type:"bar", data:{labels:Object.keys(tipos), datasets:[{label:"%", data:Object.values(tipos).map(v=>+(prom(v)*100).toFixed(1)), backgroundColor:color()}]}, options:{plugins:{legend:{display:false}}, scales:{y:{min:0,max:100}}}});
+  dibujar("cTipo", {type:"bar", data:{labels:Object.keys(tipos).map(k=>k+" ("+(prom(tipos[k])*100).toFixed(0)+"%, n="+tipos[k].length+")"), datasets:[{label:"%", data:Object.values(tipos).map(v=>+(prom(v)*100).toFixed(1)), backgroundColor:color()}]}, options:{plugins:{legend:{display:false}}, scales:{y:{min:0,max:100},x:{ticks:{autoSkip:false}}}}});
   const e = [["Errores",tasa(d=>d.errores.length>0)],["Bloqueos verificador",tasa(d=>d.bloqueos_verificador>0)],["Mensaje seguro",tasa(d=>d.mensaje_seguro)],["Replanificación",tasa(d=>d.replans>0)],["Aclaración",tasa(d=>d.aclaracion)]];
   dibujar("cErr", {type:"bar", data:{labels:e.map(x=>x[0]), datasets:[{label:"%", data:e.map(x=>+(x[1]*100).toFixed(1)), backgroundColor:["#c62828","#e07b00","#e07b00",color(),color()]}]}, options:{plugins:{legend:{display:false}}, scales:{y:{min:0,max:100}}}});
   dibujar("cTok", {type:"bar", data:{labels:D.map((_,i)=>i+1), datasets:[{label:"entrada", data:D.map(d=>d.llm.tokens_in), backgroundColor:color()},{label:"salida", data:D.map(d=>d.llm.tokens_out), backgroundColor:"#e07b00"}]}, options:{scales:{x:{stacked:true,title:{display:true,text:"turno"}},y:{stacked:true}}}});
