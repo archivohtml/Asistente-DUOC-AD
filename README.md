@@ -60,6 +60,7 @@ tests/                      # núcleo, grafo con LLM simulado, recuperación y o
 scripts/
 ├── calibrar.js             # calibra el umbral de similitud con el modelo real
 ├── evaluar.js              # corre la batería contra el agente real e imprime el resumen
+├── ultima_corrida.js       # aísla la última corrida del log (logs/corrida_final.jsonl) y la resume
 └── dashboard.js            # genera dashboard/index.html a partir de los logs
 docs/                       # arquitectura, guion de demo y evidencias (capturas)
 ```
@@ -82,7 +83,8 @@ npm start                   # o: npm run traza
 | `npm test` / `npm run test:ci` | Ejecuta las 47 pruebas automáticas (no requieren API key ni red) |
 | `npm run calibrar` | Calibra el umbral de similitud semántica (requiere API key) |
 | `npm run evaluar` | Ejecuta la batería de 15 casos contra el agente real y escribe `logs/` (requiere API key) |
-| `npm run dashboard` | Genera `dashboard/index.html` a partir de `logs/ejecuciones.jsonl` |
+| `node scripts/ultima_corrida.js` | Extrae del log solo la última corrida de `evaluar` a `logs/corrida_final.jsonl` e imprime su resumen |
+| `npm run dashboard` | Genera `dashboard/index.html` a partir de `logs/ejecuciones.jsonl` (o de `LOG_PATH`) |
 
 Comandos dentro del chat: `/perfil`, `/olvidar`, `/salir`.
 
@@ -123,6 +125,19 @@ npm run dashboard                            # genera dashboard/index.html
 
 Abre `dashboard/index.html` con doble clic (usa Chart.js desde CDN, requiere internet). En Windows: `start dashboard\index.html`.
 
+**Flujo recomendado** (en PowerShell; en otros sistemas, define `LOG_PATH` con su sintaxis):
+
+```powershell
+Remove-Item logs -Recurse -Force -ErrorAction SilentlyContinue   # empezar con el log vacío
+npm.cmd run evaluar -- --rep=5
+node scripts/ultima_corrida.js                                   # resumen solo de esta corrida
+$env:LOG_PATH = "logs/corrida_final.jsonl"
+npm.cmd run dashboard
+start dashboard\index.html
+```
+
+`ultima_corrida.js` es útil cuando `logs/ejecuciones.jsonl` mezcla varias corridas (pruebas, cortes o reintentos). Para limitar los reintentos ante errores del proveedor (429, 503, 504) se pueden usar `EVAL_REINTENTOS`, `EVAL_ESPERA_MS` y `EVAL_PAUSA_MS`.
+
 `evaluar` imprime un resumen (precisión, fechas inventadas, consistencia, latencia p50/p95, tokens, llamadas por turno, tasas) y guarda `logs/resumen.json`. **Antes de una corrida nueva borra la carpeta `logs/`**, o los resultados se mezclarán con los anteriores.
 
 > **Costo y límites:** la evaluación hace unas 2 llamadas al LLM por turno (15 casos × repeticiones). Requiere saldo en OpenRouter o un modelo con cuota suficiente; los modelos gratuitos pueden responder `429` (límite de tasa).
@@ -141,6 +156,23 @@ Cada línea `turno` incluye: `turno_id`, `ts`, `usuario` (seudónimo), `modelo`,
 - El identificador del usuario se **seudonimiza** con hash SHA-256 y sal (`LOG_SALT`); no es reversible.
 - `LOG_TEXTO=off` omite el texto de preguntas y respuestas (solo quedan métricas). `LOGS=off` desactiva el registro.
 - `logs/` y `dashboard/index.html` están en `.gitignore`: no se suben al repositorio.
+
+### 7.7 Corrida de referencia
+
+Datos de la corrida usada como evidencia del informe (15 casos × 5 repeticiones, extraída con `ultima_corrida.js`):
+
+| Dato | Valor |
+|---|---|
+| Modelo | `google/gemma-4-26b-a4b-it:free` (vía OpenRouter) |
+| Recuperación | Solo palabras clave (los embeddings no estuvieron disponibles: HTTP 402 por falta de créditos) |
+| Ejecuciones calificadas / turnos registrados | 75 / 80 (los turnos extra son reintentos por errores del proveedor) |
+| Precisión / consistencia | 76,0 % / 92,0 % |
+| Fechas inventadas | 0 |
+| Latencia p50 / p95 | 16 862 ms / 119 600 ms |
+| Tokens por turno / llamadas LLM por turno | 3 698 / 2,51 |
+| Errores / replanificación / aclaración | 2,5 % / 1,3 % / 12,5 % |
+
+Estos valores dependen del modelo y del proveedor: el modelo gratuito tiene latencia variable por la demanda. Las capturas están en [`docs/evidencias/`](docs/evidencias/).
 
 ## 8. Preguntas de demostración
 
@@ -166,7 +198,12 @@ La carpeta [`docs/evidencias/`](docs/evidencias/) contiene las capturas completa
 - **Calibración semántica** (`npm run calibrar`).
 - **Suite de pruebas** (`npm test`).
 - **Traza del agente** (`npm run traza`).
-- **Observabilidad (parcial 3):** resumen de `npm run evaluar`, capturas del dashboard y ejemplo de log anonimizado.
+- **Observabilidad (parcial 3):**
+  - `01_tests_47.png`: suite de pruebas (47 aprobadas).
+  - `02_resumen_ultima_corrida.png`: resumen de la corrida de referencia.
+  - `03_dashboard_completo.png` y `04_dashboard_filtro_coloquial.png`: dashboard completo y con un filtro aplicado.
+  - `05_tabla_fallos.png` y `06_respuesta_desplegada.png`: turnos fallidos y detalle de una respuesta.
+  - `07_generar_dashboard.png`: generación del dashboard.
 
 ## 10. Limitaciones conocidas
 
