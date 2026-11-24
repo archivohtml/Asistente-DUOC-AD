@@ -1,0 +1,15 @@
+flowchart LR
+    U([Estudiante / caso de evaluación]) --> G[Agente LangGraph<br/>8 nodos]
+    G -->|stream updates:<br/>tiempo por nodo| R[Registrador<br/>callback LangChain]
+    G -->|llamadas LLM y herramientas:<br/>latencia, tokens, errores| R
+    R --> A[Anonimizar<br/>RUT, correo, teléfono<br/>seudónimo con sal]
+    A --> L[(logs/ejecuciones.jsonl<br/>1 línea JSON por turno)]
+    E[scripts/evaluar.js<br/>15 casos × N repeticiones] -->|califica y anota| L
+    E --> U
+    L --> UC[scripts/ultima_corrida.js<br/>aísla la última corrida]
+    UC --> C[(logs/corrida_final.jsonl)]
+    L --> M[metricas.js<br/>precisión, consistencia,<br/>p50 / p95]
+    C --> D[scripts/dashboard.js]
+    L --> D
+    D --> H[/dashboard/index.html<br/>KPIs, gráficos, filtros, tabla de fallos/]
+    M --> S1[Resumen en terminal]
