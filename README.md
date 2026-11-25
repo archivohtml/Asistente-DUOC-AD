@@ -2,7 +2,7 @@
 
 Agente inteligente que orienta a estudiantes de Duoc UC sobre el **Calendario Académico 2026** (matrícula, semana cero, inscripción y retiro de asignaturas, pruebas finales, feriados). Combina **planificación adaptativa, memoria de corto, largo plazo y episódica, herramientas de consulta y escritura, recuperación semántica híbrida y un verificador anti alucinación**, orquestados con **LangGraph.js**. La evaluación parcial 3 agrega **observabilidad**: métricas, logs estructurados, batería de evaluación y un dashboard interactivo.
 
-Proyecto académico de la asignatura *Ingeniería de Soluciones con Inteligencia Artificial* (ISY1010), Duoc UC. Docente: Francisco Macaya. No es un canal oficial de la institución.
+Proyecto académico de la asignatura *Ingeniería de Soluciones con Inteligencia Artificial* (ISY0101), Duoc UC. Docente: Francisco Macaya. No es un canal oficial de la institución.
 
 ## 1. Problema que resuelve
 
@@ -29,7 +29,7 @@ START → cargar_memoria → planificador ─┬→ aclaracion ─────�
                               └──────── verificador ──→ guardar_memoria ◄──────┘ → END
 ```
 
-Detalle de nodos, tablas y diagrama Mermaid en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md). Bocetos de diseño de la observabilidad (flujo de datos y wireframe del dashboard) en [`docs/bocetos/`](docs/bocetos/BOCETOS.md). Guion de la demostración en [`docs/GUION_DEMO.md`](docs/GUION_DEMO.md). Capturas de las pruebas en [`docs/evidencias/`](docs/evidencias/).
+Detalle de nodos, tablas y diagrama Mermaid en [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md). Bocetos de diseño de la observabilidad (flujo de datos y wireframe del dashboard) en [`docs/bocetos/`](docs/bocetos/). Guion de la demostración en [`docs/GUION_DEMO.md`](docs/GUION_DEMO.md). Capturas de las pruebas en [`docs/evidencias/`](docs/evidencias/).
 
 **Recuperación (RAG) híbrida.** Cada consulta se compara por similitud semántica (embeddings `openai/text-embedding-3-small` vía OpenRouter, índice vectorial con caché en disco) y por palabras clave. Los dos rankings se fusionan con *Reciprocal Rank Fusion* (k = 60). Se aplica filtro por modalidad y un umbral de similitud para no inventar resultados. Sin API key, o si falla la red, el sistema degrada a palabras clave.
 
@@ -90,23 +90,23 @@ Comandos dentro del chat: `/perfil`, `/olvidar`, `/salir`.
 
 **Umbral semántico.** La calibración (7 consultas positivas y 5 negativas) dio una similitud mínima de 0,360 en las positivas y máxima de 0,297 en las negativas, por lo que se recomienda `SEMANTIC_MIN_SCORE=0.33` en el `.env`.
 
-> **Windows / PowerShell:** si PowerShell bloquea los scripts de `npm`, usa `npm.cmd` (por ejemplo `npm.cmd test`, `npm.cmd run evaluar`).
+**Windows / PowerShell:** si PowerShell bloquea los scripts de npm, usa `npm.cmd` (por ejemplo `npm.cmd test`, `npm.cmd run evaluar`).
 
 Si `npm install` reporta conflictos entre paquetes de LangChain, ejecuta:
 `npm install @langchain/core@latest @langchain/langgraph@latest @langchain/openai@latest zod`.
 
 ## 7. Observabilidad (evaluación parcial 3)
 
-El agente registra **una línea JSON por turno** en `logs/ejecuciones.jsonl` mediante un *callback* de LangChain (`src/observabilidad/registrador.js`). El registro no cambia las respuestas del agente.
+El agente registra una línea JSON por turno en `logs/ejecuciones.jsonl` mediante un callback de LangChain (`src/observabilidad/registrador.js`). El registro no cambia las respuestas del agente.
 
 ### 7.1 Métricas
 
 | Dimensión | Métrica | Cómo se mide |
 |---|---|---|
 | Precisión | % de respuestas correctas | `calificar()` compara las fechas de la respuesta con las esperadas por caso (`evaluacion/casos.json`) |
-| Precisión | Fechas inventadas | Fechas de la respuesta que no existen en el calendario real, no son "hoy" y no las dijo el estudiante |
+| Precisión | Fechas inventadas | Fechas de la respuesta que no existen en el calendario real, no son «hoy» y no las dijo el estudiante |
 | Consistencia | % de repeticiones que coinciden | Misma pregunta repetida N veces (`--rep=N`); se compara el conjunto de fechas de cada respuesta |
-| Latencia | p50 y p95 del turno; latencia por nodo | Tiempo del turno completo y tiempo entre eventos del *stream* de LangGraph |
+| Latencia | p50 y p95 del turno; latencia por nodo | Tiempo del turno completo y tiempo entre eventos del stream de LangGraph |
 | Recursos | Tokens y llamadas al LLM por turno | `usage_metadata` de cada llamada al modelo |
 | Errores | Tasa de errores, bloqueos del verificador, mensaje seguro, replanificaciones, aclaraciones | Contadores por turno en el log |
 
@@ -125,7 +125,7 @@ npm run dashboard                            # genera dashboard/index.html
 
 Abre `dashboard/index.html` con doble clic (usa Chart.js desde CDN, requiere internet). En Windows: `start dashboard\index.html`.
 
-**Flujo recomendado** (en PowerShell; en otros sistemas, define `LOG_PATH` con su sintaxis):
+Flujo recomendado (en PowerShell; en otros sistemas, define `LOG_PATH` con su sintaxis):
 
 ```powershell
 Remove-Item logs -Recurse -Force -ErrorAction SilentlyContinue   # empezar con el log vacío
@@ -138,9 +138,9 @@ start dashboard\index.html
 
 `ultima_corrida.js` es útil cuando `logs/ejecuciones.jsonl` mezcla varias corridas (pruebas, cortes o reintentos). Para limitar los reintentos ante errores del proveedor (429, 503, 504) se pueden usar `EVAL_REINTENTOS`, `EVAL_ESPERA_MS` y `EVAL_PAUSA_MS`.
 
-`evaluar` imprime un resumen (precisión, fechas inventadas, consistencia, latencia p50/p95, tokens, llamadas por turno, tasas) y guarda `logs/resumen.json`. **Antes de una corrida nueva borra la carpeta `logs/`**, o los resultados se mezclarán con los anteriores.
+`evaluar` imprime un resumen (precisión, fechas inventadas, consistencia, latencia p50/p95, tokens, llamadas por turno, tasas) y guarda `logs/resumen.json`. Antes de una corrida nueva borra la carpeta `logs/`, o los resultados se mezclarán con los anteriores.
 
-> **Costo y límites:** la evaluación hace unas 2 llamadas al LLM por turno (15 casos × repeticiones). Requiere saldo en OpenRouter o un modelo con cuota suficiente; los modelos gratuitos pueden responder `429` (límite de tasa).
+**Costo y límites:** la evaluación hace unas 2 llamadas al LLM por turno (15 casos × repeticiones). Requiere saldo en OpenRouter o un modelo con cuota suficiente; los modelos gratuitos pueden responder 429 (límite de tasa).
 
 ### 7.4 Dashboard
 
@@ -152,14 +152,14 @@ Cada línea `turno` incluye: `turno_id`, `ts`, `usuario` (seudónimo), `modelo`,
 
 ### 7.6 Privacidad en los registros
 
-- Antes de escribir en disco se enmascaran **RUT, correos, teléfonos y números largos** (`anonimizar.js`).
-- El identificador del usuario se **seudonimiza** con hash SHA-256 y sal (`LOG_SALT`); no es reversible.
+- Antes de escribir en disco se enmascaran RUT, correos, teléfonos y números largos (`anonimizar.js`).
+- El identificador del usuario se seudonimiza con hash SHA-256 y sal (`LOG_SALT`); no es reversible.
 - `LOG_TEXTO=off` omite el texto de preguntas y respuestas (solo quedan métricas). `LOGS=off` desactiva el registro.
-- `logs/` y `dashboard/index.html` están en `.gitignore`: no se suben al repositorio.
+- `logs/` y `dashboard/index.html` están en `.gitignore`: no se suben al repositorio. La única excepción es la corrida de referencia anonimizada, en `docs/evidencias/corrida_final.jsonl` (ver 7.7).
 
 ### 7.7 Corrida de referencia
 
-Datos de la corrida usada como evidencia del informe (15 casos × 5 repeticiones, extraída con `ultima_corrida.js`):
+Datos de la corrida usada como evidencia del informe (15 casos × 5 repeticiones, extraída con `ultima_corrida.js`). El archivo `docs/evidencias/corrida_final.jsonl` contiene esa corrida con los datos personales ya anonimizados (por ejemplo, la pregunta de `pii_rut` aparece como `[RUT]` y `[CORREO]`).
 
 | Dato | Valor |
 |---|---|
@@ -168,11 +168,11 @@ Datos de la corrida usada como evidencia del informe (15 casos × 5 repeticiones
 | Ejecuciones calificadas / turnos registrados | 75 / 80 (el caso `seg_examenes` tiene 2 turnos por ejecución: 75 + 5 = 80) |
 | Precisión / consistencia | 76,0 % / 92,0 % |
 | Fechas inventadas | 0 |
-| Latencia p50 / p95 | 16 862 ms / 119 600 ms |
-| Tokens por turno / llamadas LLM por turno | 3 698 / 2,51 |
+| Latencia p50 / p95 | 16.862 ms / 119.600 ms |
+| Tokens por turno / llamadas LLM por turno | 3.698 / 2,51 |
 | Errores / replanificación / aclaración | 2,5 % / 1,3 % / 12,5 % |
 
-Estos valores dependen del modelo y del proveedor: el modelo gratuito tiene latencia variable por la demanda. Las capturas están en [`docs/evidencias/`](docs/evidencias/).
+Estos valores dependen del modelo y del proveedor: el modelo gratuito tiene latencia variable por la demanda. Las capturas están en `docs/evidencias/`.
 
 ## 8. Preguntas de demostración
 
@@ -199,6 +199,7 @@ La carpeta [`docs/evidencias/`](docs/evidencias/) contiene las capturas completa
 - **Suite de pruebas** (`npm test`).
 - **Traza del agente** (`npm run traza`).
 - **Observabilidad (parcial 3):**
+  - `corrida_final.jsonl`: log de la corrida de referencia (anonimizado).
   - `01_tests_47.png`: suite de pruebas (47 aprobadas).
   - `02_resumen_ultima_corrida.png`: resumen de la corrida de referencia.
   - `03_dashboard_completo.png` y `04_dashboard_filtro_coloquial.png`: dashboard completo y con un filtro aplicado.
@@ -214,18 +215,19 @@ La carpeta [`docs/evidencias/`](docs/evidencias/) contiene las capturas completa
 - No hay conexión a WhatsApp ni a otros canales.
 - Las métricas dependen del modelo y del modo de recuperación usados en cada corrida (el log guarda el modelo); con embeddings no disponibles se usa solo búsqueda por palabras clave.
 - La batería tiene 15 casos y pocas repeticiones: sirve para detectar tendencias, no para estimaciones estadísticas finas.
+- Fallos conocidos en la corrida de referencia: `cal_feriado` y `pii_rut` fallaron en las 5 repeticiones (la regla de aclaración pide la modalidad sin necesidad, y con datos personales el modelo no llamó a ninguna herramienta). El análisis está en el informe y las mejoras propuestas no se implementaron en esta versión.
 
 ## 11. Seguridad
 
 - Las claves viven solo en `.env`, ignorado por git. **Nunca subas `.env`**. Si una clave se expuso, revócala y genera otra.
 - `data/` (memoria, índice de embeddings) y `salidas/` (archivos generados) también están ignorados.
 - El perfil acepta solo campos de una lista blanca; la herramienta de agenda escribe solo en `SALIDAS_PATH`.
-- Los logs se anonimizan antes de escribirse (ver 7.6) y se mantienen solo en local.
+- Los logs se anonimizan antes de escribirse (ver 7.6) y se mantienen solo en local, salvo la corrida de referencia anonimizada incluida en `docs/evidencias/`.
 - El verificador de fechas y el caso `iny_fecha` de la batería comprueban la resistencia a instrucciones maliciosas.
 
 ## 12. Declaración de uso de IA
 
-El código y la documentación se desarrollaron con apoyo de IA generativa, principalmente Claude (Anthropic, 2026). El equipo revisó, probó y validó los resultados, y asume la responsabilidad por el contenido final. Las conclusiones individuales del informe fueron escritas por cada integrante.
+El código y la documentación se desarrollaron con apoyo de IA generativa, principalmente Claude (Anthropic, 2026). Claude también propuso un borrador de la tabla de recomendaciones y de la explicación de las causas de los fallos del informe, que el equipo verificó contra los registros y reescribió con sus propias palabras. El equipo revisó, probó y validó los resultados, y asume la responsabilidad por el contenido final. Las conclusiones individuales del informe fueron escritas por cada integrante sin apoyo de IA.
 
 ## 13. Autores
 
